@@ -6,17 +6,17 @@ namespace handcrafted_marketplace.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class UserController : ControllerBase
+    public class ProductController : ControllerBase
     {
         private readonly NpgsqlConnection _conn;
 
-        public UserController(NpgsqlConnection conn)
+        public ProductController(NpgsqlConnection conn)
         {
             _conn = conn ?? throw new ArgumentNullException(nameof(conn));
         }
 
         [HttpPost]
-        public async Task<IActionResult> PostUser([FromBody] PostUserRequest request)
+        public async Task<IActionResult> PostProduct([FromBody] PostProductRequest request)
         {
             if (!request.IsValid) return UnprocessableEntity(request);
 
@@ -24,17 +24,17 @@ namespace handcrafted_marketplace.Controllers
             {
                 await _conn.OpenAsync();
 
-                await using var cmd = new NpgsqlCommand("INSERT INTO usuario (nome, cpf) VALUES ($1, $2)", _conn)
+                await using var cmd = new NpgsqlCommand("INSERT INTO produto (nome, preco, cnpjloja) VALUES ($1, $2, $3)", _conn)
                 {
                     Parameters =
                         {
                             new NpgsqlParameter { Value = request.Nome },
-                            new NpgsqlParameter { Value = request.Cpf }
+                            new NpgsqlParameter { Value = request.Preco },
+                            new NpgsqlParameter { Value = request.CnpjLoja }
                         }
                 };
                 await cmd.ExecuteNonQueryAsync();
             }
-
             return Ok();
         }
     }
