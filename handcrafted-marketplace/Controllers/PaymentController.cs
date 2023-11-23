@@ -44,7 +44,7 @@ namespace handcrafted_marketplace.Controllers
 
             EventHubProducerClient producerClient = new EventHubProducerClient(
                 "",
-                "<HUB_NAME>");
+                "payment-service");
 
             // Create a batch of events 
             using EventDataBatch eventBatch = await producerClient.CreateBatchAsync();
