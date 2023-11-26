@@ -3,7 +3,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddNpgsqlDataSource("Host=hmdatabase.postgres.database.azure.com;Port=5432;Username=hm_admin;Password=fKS701B3%:\\|;Database=hmdb;Trust Server Certificate=true;");
+builder.Services.AddNpgsqlDataSource("");
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -21,11 +21,8 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
