@@ -1,4 +1,5 @@
-﻿using handcrafted_marketplace.DTOs;
+﻿using Azure.Core;
+using handcrafted_marketplace.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
@@ -36,6 +37,38 @@ namespace handcrafted_marketplace.Controllers
                 await cmd.ExecuteNonQueryAsync();
             }
             return Ok();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult>  GetProducts()
+        {
+            var products = new List<GetProductsResponse>();
+            await using (_conn)
+            {
+                await _conn.OpenAsync();
+
+                await using var cmd = new NpgsqlCommand("SELECT p.nome, p.preco, l.cnpj, l.nome FROM produto p  INNER JOIN loja l ON p.cnpjloja = l.cnpj", _conn);
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while(await reader.ReadAsync())
+                {
+                    var productResponse = new GetProductsResponse
+                    {
+                        Product = new GetProductsResponse.ProductDetails
+                        {
+                            Name = reader.GetString(0),
+                            Price = reader.GetDouble(1),
+                        },
+                        Store = new GetProductsResponse.StoreDetails
+                        {
+                            Cnpj = reader.GetString(2),
+                            Name = reader.GetString(3),
+                        }
+                    };
+                    products.Add(productResponse);
+                }
+            }
+            return Ok(products);
         }
     }
 }
