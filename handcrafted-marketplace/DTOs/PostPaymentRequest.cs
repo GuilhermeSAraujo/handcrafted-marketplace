@@ -8,7 +8,7 @@
 
         public bool IsValid
         {
-            get => !(string.IsNullOrEmpty(CpfUsuario) || IdProduto <= 0);
+            get => !(string.IsNullOrEmpty(CpfUsuario) || CpfUsuario.Length != 11 ||  IdProduto <= 0);
         }
 
         public class Pagamento

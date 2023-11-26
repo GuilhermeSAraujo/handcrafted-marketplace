@@ -1,8 +1,8 @@
-﻿using Azure.Messaging.EventHubs.Producer;
-using Confluent.Kafka;
+﻿using Azure.Identity;
+using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Producer;
 using handcrafted_marketplace.DTOs;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Diagnostics;
 using Npgsql;
 using System.Text;
 
@@ -24,11 +24,13 @@ namespace handcrafted_marketplace.Controllers
         {
             if (!request.IsValid) return UnprocessableEntity(request);
 
+            int paymentId = 0;
+
             await using (_conn)
             {
                 await _conn.OpenAsync();
 
-                await using var cmd = new NpgsqlCommand("INSERT INTO pagamento (idproduto, cpfusuario, contacorrente, agencia, status) VALUES ($1, $2, $3, $4, $5)", _conn)
+                await using var cmd = new NpgsqlCommand("INSERT INTO pagamento (idproduto, cpfusuario, contacorrente, agencia, status) VALUES ($1, $2, $3, $4, $5) RETURNING id", _conn)
                 {
                     Parameters =
                         {
@@ -39,37 +41,26 @@ namespace handcrafted_marketplace.Controllers
                             new NpgsqlParameter { Value = "EM ANDAMENTO" },
                         }
                 };
-                await cmd.ExecuteNonQueryAsync();
+                paymentId = (int)await cmd.ExecuteScalarAsync();
             }
 
-            EventHubProducerClient producerClient = new EventHubProducerClient(
-                "",
-                "payment-service");
+            var connectionString = "";
+            var eventHubName = "payment-service";
 
-            // Create a batch of events 
-            using EventDataBatch eventBatch = await producerClient.CreateBatchAsync();
-
-            for (int i = 1; i <= numOfEvents; i++)
+            await using (var producer = new EventHubProducerClient(connectionString, eventHubName))
             {
-                if (!eventBatch.TryAdd(new EventData(Encoding.UTF8.GetBytes($"Event {i}"))))
+                using EventDataBatch eventBatch = await producer.CreateBatchAsync();
+                eventBatch.TryAdd(new EventData(new BinaryData(new
                 {
-                    // if it is too large for the batch
-                    throw new Exception($"Event {i} is too large for the batch and cannot be sent.");
-                }
-            }
+                    idPagamento = paymentId,
+                    idProduto = request.IdProduto,
+                    cpfUsuario = request.CpfUsuario,
+                    contaCorrente = request.DadosPagamento.ContaCorrente,
+                    agencia = request.DadosPagamento.Agencia
+                })));
 
-            try
-            {
-                // Use the producer client to send the batch of events to the event hub
-                await producerClient.SendAsync(eventBatch);
-                Console.WriteLine($"A batch of {numOfEvents} events has been published.");
-                Console.ReadLine();
+                await producer.SendAsync(eventBatch);
             }
-            finally
-            {
-                await producerClient.DisposeAsync();
-            }
-
             return Ok();
         }
     }
