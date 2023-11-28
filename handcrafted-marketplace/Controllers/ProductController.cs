@@ -47,7 +47,7 @@ namespace handcrafted_marketplace.Controllers
             {
                 await _conn.OpenAsync();
 
-                await using var cmd = new NpgsqlCommand("SELECT p.nome, p.preco, l.cnpj, l.nome FROM produto p  INNER JOIN loja l ON p.cnpjloja = l.cnpj", _conn);
+                await using var cmd = new NpgsqlCommand("SELECT p.id, p.nome, p.preco, l.cnpj, l.nome FROM produto p  INNER JOIN loja l ON p.cnpjloja = l.cnpj", _conn);
                 using var reader = await cmd.ExecuteReaderAsync();
 
                 while(await reader.ReadAsync())
@@ -56,13 +56,14 @@ namespace handcrafted_marketplace.Controllers
                     {
                         Product = new GetProductsResponse.ProductDetails
                         {
-                            Name = reader.GetString(0),
-                            Price = reader.GetDouble(1),
+                            Id = reader.GetInt32(0),
+                            Name = reader.GetString(1),
+                            Price = reader.GetDouble(2),
                         },
                         Store = new GetProductsResponse.StoreDetails
                         {
-                            Cnpj = reader.GetString(2),
-                            Name = reader.GetString(3),
+                            Cnpj = reader.GetString(3),
+                            Name = reader.GetString(4),
                         }
                     };
                     products.Add(productResponse);
