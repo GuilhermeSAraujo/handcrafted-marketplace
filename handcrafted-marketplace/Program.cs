@@ -3,7 +3,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddNpgsqlDataSource("Host=hmdatabase.postgres.database.azure.com;Port=5432;Username=hm_admin;Password=Guilherme1234@;Database=hmdb;Trust Server Certificate=true;");
+builder.Services.AddNpgsqlDataSource("");
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
