@@ -3,12 +3,13 @@
     public class PostPaymentRequest
     {
         public string CpfUsuario { get; set; }
+        public string Nome { get; set; }
         public int IdProduto { get; set; }
         public Pagamento DadosPagamento { get; set; }
 
         public bool IsValid
         {
-            get => !(string.IsNullOrEmpty(CpfUsuario) || CpfUsuario.Length != 11 ||  IdProduto <= 0);
+            get => !(string.IsNullOrEmpty(CpfUsuario) || CpfUsuario.Length != 11 ||  IdProduto <= 0 || string.IsNullOrEmpty(Nome));
         }
 
         public class Pagamento

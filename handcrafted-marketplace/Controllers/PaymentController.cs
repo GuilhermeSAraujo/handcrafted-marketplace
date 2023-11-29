@@ -1,10 +1,8 @@
-﻿using Azure.Identity;
-using Azure.Messaging.EventHubs;
+﻿using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 using handcrafted_marketplace.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
-using System.Text;
 
 namespace handcrafted_marketplace.Controllers
 {
@@ -30,16 +28,30 @@ namespace handcrafted_marketplace.Controllers
             {
                 await _conn.OpenAsync();
 
+                await using var cmdInsertOrUpdateUser = new NpgsqlCommand(@"
+                    INSERT INTO usuario (nome, cpf) 
+                    VALUES ($1, $2)
+                    ON CONFLICT (cpf) DO NOTHING", _conn)
+                {
+                    Parameters =
+                    {
+                        new NpgsqlParameter { Value = request.Nome },
+                        new NpgsqlParameter { Value = request.CpfUsuario }
+                    }
+                };
+
+                await cmdInsertOrUpdateUser.ExecuteNonQueryAsync();
+
                 await using var cmd = new NpgsqlCommand("INSERT INTO pagamento (idproduto, cpfusuario, contacorrente, agencia, status) VALUES ($1, $2, $3, $4, $5) RETURNING id", _conn)
                 {
                     Parameters =
-                        {
-                            new NpgsqlParameter { Value = request.IdProduto },
-                            new NpgsqlParameter { Value = request.CpfUsuario },
-                            new NpgsqlParameter { Value = request.DadosPagamento.ContaCorrente },
-                            new NpgsqlParameter { Value = request.DadosPagamento.Agencia },
-                            new NpgsqlParameter { Value = "EM ANDAMENTO" },
-                        }
+            {
+                new NpgsqlParameter { Value = request.IdProduto },
+                new NpgsqlParameter { Value = request.CpfUsuario },
+                new NpgsqlParameter { Value = request.DadosPagamento.ContaCorrente },
+                new NpgsqlParameter { Value = request.DadosPagamento.Agencia },
+                new NpgsqlParameter { Value = "EM ANDAMENTO" },
+            }
                 };
                 paymentId = (int)await cmd.ExecuteScalarAsync();
             }
