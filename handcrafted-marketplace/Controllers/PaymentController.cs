@@ -3,6 +3,7 @@ using Azure.Messaging.EventHubs.Producer;
 using handcrafted_marketplace.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
+using System.Data;
 
 namespace handcrafted_marketplace.Controllers
 {
@@ -74,6 +75,61 @@ namespace handcrafted_marketplace.Controllers
                 await producer.SendAsync(eventBatch);
             }
             return Ok();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPayments()
+        {
+            var products = new List<GetPaymentsResponse>();
+            await using (_conn)
+            {
+                await _conn.OpenAsync();
+
+                await using var cmd = new NpgsqlCommand(@"
+	                  SELECT 
+	                      pagamento.id, pagamento.contacorrente, pagamento.agencia, pagamento.status,
+	                      u.nome as nomeUsuario, u.cpf,
+	                      produto.nome as nomeProduto, produto.preco,
+	                      loja.cnpj, loja.nome
+	                  FROM pagamento
+	                  INNER JOIN produto ON pagamento.idproduto = produto.id
+	                  INNER JOIN usuario u ON u.cpf = pagamento.cpfusuario
+	                  INNER JOIN loja ON loja.cnpj = produto.cnpjloja
+                    ", _conn);
+
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    var paymentResponse = new GetPaymentsResponse
+                    {
+                        Pagamento = new GetPaymentsResponse.DadosPagamento
+                        {
+                            Id = reader.GetInt32(0),
+                            ContaCorrente = reader.GetString(1),
+                            Agencia = reader.GetString(2),
+                            Status = reader.GetString(3)
+                        },
+                        Usuario = new GetPaymentsResponse.DadosUsuario
+                        {
+                            Nome = reader.GetString(4),
+                            Cpf = reader.GetString(5),
+                        },
+                        Produto = new GetPaymentsResponse.DadosProduto
+                        {
+                            Nome = reader.GetString(6),
+                            Preco = reader.GetDouble(7),
+                        },
+                        Loja = new GetPaymentsResponse.DadosLoja
+                        {
+                            Cnpj = reader.GetString(8),
+                            Nome = reader.GetString(9)
+                        }
+                    };
+                    products.Add(paymentResponse);
+                }
+            }
+            return Ok(products);
         }
     }
 }
